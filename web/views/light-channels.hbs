@@ -1,25 +1,11 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<style>
-    /* set the CSS */
+<script>
+    var profile = "{{profile}}";
 
-    .line {
-        fill: none;
-        stroke: steelblue;
-        stroke-width: 2px;
-    }
-
-    .area {
-        fill: lightsteelblue;
-    }
-</style>
-
-<body>
-<h1>Channel Test</h1>
+</script>
+<h1>Profile: {{profile}}</h1>
 <div id="channel_chart1"></div>
+<div id="channel_controls"></div>
 
-
-    <!-- load the d3.js library -->
-    <script src="d3.v4.min.js"></script>
-    <script src="light-channels.js"></script>
-</body>
+<!-- load the d3.js library -->
+<script src="/lib/d3.v4.min.js"></script>
+<script src="/js/light-channels.js"></script>

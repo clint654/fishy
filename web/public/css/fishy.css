@@ -1,0 +1,55 @@
+    .channel0 {
+        fill: none;
+        stroke: lightblue;
+        background:lightblue;
+        stroke-width: 3px;;
+    }
+    .channel1 {
+        fill:none;
+        stroke: orange;
+        background: orange;
+        stroke-width: 3px;
+    }
+  
+    .channel2 {
+        fill: none;
+        stroke: green;
+        background: green;
+        stroke-width: 3px;
+    }
+ .channel3 {
+        fill: none;
+        stroke: blue;
+        background: blue;
+        stroke-width: 3px;
+    }
+
+ .channel4 {
+        fill: none;
+        stroke:fuchsia;
+        background:fuchsia;
+        stroke-width: 3px;
+    }
+
+ .channel5 {
+        fill: none;
+        stroke:coral;
+        background:coral;
+        stroke-width: 3px;
+    }
+
+ .channel6 {
+        fill: none;
+        stroke: palevioletred;
+        background: palevioletred;
+        stroke-width: 3px;
+    }
+    .tick line {
+  stroke: lightgrey;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+
+    .area {
+        fill: lightsteelblue;
+    }
