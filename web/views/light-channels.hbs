@@ -1,99 +1,25 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style> /* set the CSS */
+<style>
+    /* set the CSS */
 
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 2px;
-}
+    .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 2px;
+    }
 
-.area {
-  fill: lightsteelblue;
-}
-
+    .area {
+        fill: lightsteelblue;
+    }
 </style>
+
 <body>
+<h1>Channel Test</h1>
+<div id="channel_chart1"></div>
 
-<!-- load the d3.js library -->    	
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<script>
 
-// set the dimensions and margins of the graph
-var margin = {top: 20, right: 20, bottom: 30, left: 50},
-    width = 600 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
-
-var parseTime = d3.timeParse("%H:%M");
-
-var scalex = d3.scaleTime().range([0, width]);
-var scaley = d3.scaleLinear().range([height, 0]);
-
-var svg = d3.select("body").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
-
-var ourdata;
-var valueline;
-var chan1;
-
-// get the data
-d3.csv("data.csv", function(error, data) {
-  if (error) throw error;
-
-  // format the data
-  data.forEach(function(d) {
-      d.time = parseTime(d.time);
-      d.power = +d.power;
-  });
-
-  // scale the range of the data
-  scalex.domain(d3.extent(data, function(d) { return d.time; }));
-  scaley.domain([0, d3.max(data, function(d) { return d.power; })]);
-
-  // add the X Axis
-  svg.append("g")
-      .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(scalex)
-      .ticks(12)
-      .tickFormat(d3.timeFormat("%H:%M")))
-      .selectAll("text")	
-        .style("text-anchor", "end")
-        .attr("dx", "-.8em")
-        .attr("dy", ".15em")
-        .attr("transform", "rotate(-25)")
-
-;
-
-  // add the Y Axis
-  svg.append("g")
-      .call(d3.axisLeft(scaley));
-
- valueline = d3.line()
-    .x(function(d) { return scalex(d.time); })
-    .y(function(d) { return scaley(d.power); })
-.curve(d3.curveMonotoneX)
-;
-
-  chan1 = svg.append("path")
-      .data([data])
-      .attr("class", "line")
-      .attr("d", valueline).attr("id","chan1");
-
-  svg.selectAll("dot")
-      .data(data)
-    .enter().append("circle")
-      .attr("r", 4)
-      .attr("cx", function(d) { return scalex(d.time); })
-      .attr("cy", function(d) { return scaley(d.power); });
-
-  ourdata=data;
-console.log(chan1.node().getPointAtLength(600));
-console.log(chan1.node().getTotalLength());
-});
-
-</script>
+    <!-- load the d3.js library -->
+    <script src="d3.v4.min.js"></script>
+    <script src="light-channels.js"></script>
 </body>
