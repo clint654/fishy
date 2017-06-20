@@ -23,7 +23,7 @@ var svg = d3.select("#channel_chart1").append("svg")
 
 var ourdata = new Array();
 var channeldata = new Array();
-var valueline;
+var valueline; //TODO - array with selectable type
 var tooltip;
 var selectedpoint;
 var debug;
