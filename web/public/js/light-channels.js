@@ -24,6 +24,9 @@ var svg = d3.select("#channel_chart1").append("svg")
 var ourdata = new Array();
 var channeldata = new Array();
 var valueline;
+var tooltip;
+var selectedpoint;
+var debug;
 
 // get the data
 /*d3.csv("data.csv", function (error, data) {
@@ -118,6 +121,7 @@ function build_chart(data) {
         updatedot(i);
     }
 
+    tooltip = d3.select("#charttooltip");
 
 }
 
@@ -138,9 +142,10 @@ function dragged(d) {
     if (scalex.invert(nx) < parseTime("00:00:00")) {
         nx = scalex(parseTime("00:00:00"))
     };
-    if (scalex.invert(nx) > parseTime("24:00.00")) {
-        nx = scalex(parseTime("24:00.00"))
+    if (scalex.invert(nx) > parseTime("24:00:00")) {
+        nx = scalex(parseTime("24:00:00"))
     };
+
 
     d3.select(this).attr("cx", d.x = nx).attr("cy", d.y = ny);
     d.power = scaley.invert(ny);
@@ -151,6 +156,10 @@ function dragged(d) {
     });
     updatepath(d.channel);
     updateform(d.channel);
+    
+    tooltip.style("left", (d3.event.sourceEvent.pageX + 4) + "px")
+        .style("top", (d3.event.sourceEvent.pageY - 57) + "px");
+    tooltip.select("#charttooltiptext").html(pretty_point(d, "<br>"));
 }
 
 function dragended(d) {
@@ -163,26 +172,41 @@ function updatepath(i) {
 
 function updatedot(i) {
 
-    if (svg.select("#channeldots" + i)) {
+    if (svg.select("#channeldots" + i).empty()) {
         console.log("new " + i);
-        svg.append("g").attr("id", "channeldots" + i)
+        svg.append("g").attr("id", "channeldots" + i);
     }
     svg.select("#channeldots" + i).selectAll("circle")
         .data(ourdata[i].data)
         .enter().append("circle")
-        .attr("r", 4)
+        .attr("r", 5)
         .attr("cx", function (d) {
             return scalex(d.time);
         })
         .attr("cy", function (d) {
             return scaley(d.power);
         })
+        .on("mouseover", function (d) {
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .8);
+            tooltip.style("left", (d3.event.pageX + 4) + "px")
+                .style("top", (d3.event.pageY - 57) + "px");
+            tooltip.select("#charttooltiptext").html(pretty_point(d, "<br>"));
+            tooltip.select("#buttonremove").on("click", removedot);
+            selectedpoint = d;
+        })
+        //.on("mouseout", function(d) {       
+        //    tooltip.transition()        
+        //        .duration(500)      
+        //        .style("opacity", 0);   
+        //})
         .call(d3.drag()
             .on("start", dragstarted)
             .on("drag", dragged)
             .on("end", dragended));
 
-    svg.select("channeldots" + i).selectAll("circle").data(ourdata[i].data).transition().duration(100).attr("r", 6)
+    svg.select("#channeldots" + i).selectAll("circle").data(ourdata[i].data)
         .attr("cx", function (d) {
             return scalex(d.time);
         })
@@ -190,14 +214,40 @@ function updatedot(i) {
             return scaley(d.power);
         });
 
-    svg.select("channeldots" + i).selectAll("circle").data(ourdata[i].data).exit().remove();
+    svg.select("#channeldots" + i).selectAll("circle").data(ourdata[i].data).exit().remove();
 
 
 }
 
+function removedot() {
+    var index = ourdata[selectedpoint.channel].data.indexOf(selectedpoint);
+    //Dont allow the first or last elements to be deleted
+    if ((index > 0) && (index < ourdata[selectedpoint.channel].data.length)) {
+        ourdata[selectedpoint.channel].data.splice(index, 1);
+    }
+    updatepath(selectedpoint.channel);
+    updateform(selectedpoint.channel);
+    updatedot(selectedpoint.channel);
+    console.log("Update: " + selectedpoint.channel);
+    tooltip.style("opacity", "0");
+
+}
+
 function updateform(i) {
-    d3.select("#pointlist" + i).selectAll("li").data(ourdata[i].data).enter().append("li").text(pretty_point);
-    d3.select("#pointlist" + i).selectAll("li").data(ourdata[i].data).transition().text(pretty_point)
+    var t = d3.select("#pointlist" + i).selectAll("li").data(ourdata[i].data).enter().append("li").append("span").text(pretty_point);
+    var t = d3.select("#pointlist" + i).selectAll("li").data(ourdata[i].data).select("span").text(pretty_point).on("mouseover", function (d) {
+        tooltip.transition()
+            .duration(200)
+            .style("opacity", .8);
+        debug = d3.event;
+        var bodyRect = document.body.getBoundingClientRect();
+
+        tooltip.style("left", (d3.event.target.getBoundingClientRect().right) + "px")
+            .style("top", (d3.event.target.getBoundingClientRect().bottom - bodyRect.top - 70) + "px");
+        tooltip.select("#charttooltiptext").html(pretty_point(d, "<br>"));
+        tooltip.select("#buttonremove").on("click", removedot);
+        selectedpoint = d;
+    });
     d3.select("#pointlist" + i).selectAll("li").data(ourdata[i].data).exit().remove();
 }
 
@@ -222,11 +272,13 @@ function makechannelcontrolui() {
         var ul = contents.append("ul").attr("id", "pointlist" + i);
 
         updateform(i);
-
     }
-
 }
 
-function pretty_point(point) {
-    return "Time: " + d3.timeFormat("%H:%M")(point.time) + " Power %: " + Math.round(point.power);
+function pretty_point(point, linebreak) {
+ 
+    if (typeof(linebreak) === 'number' || linebreak instanceof Number) {
+        linebreak = " ";
+    }
+    return "Time: " + d3.timeFormat("%H:%M")(point.time) + linebreak + "Power %: " + Math.round(point.power);
 }
