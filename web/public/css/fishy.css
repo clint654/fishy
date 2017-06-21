@@ -70,3 +70,10 @@
         box-shadow: 3px 3px 4px grey;
         font-size: 75%;
     }
+
+    .slider-track {
+        background: darkgrey;
+    }
+    .slider-selection {
+        background: cadetblue;
+    }

@@ -1,17 +1,17 @@
 var chan_number = 6;
 // set the dimensions and margins of the graph
 var margin = {
-        top: 20,
-        right: 20,
-        bottom: 30,
-        left: 50
-    },
-    width = 800 - margin.left - margin.right,
+    top: 20,
+    right: 20,
+    bottom: 50,
+    left: 50
+},
+    width = 900 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
 var parseTime = d3.timeParse("%H:%M:%S");
 
-var scalex = d3.scaleTime().range([0, width]);
+var scalex = d3.scaleLinear().range([0, width]);
 var scaley = d3.scaleLinear().range([height, 0]);
 
 var svg = d3.select("#channel_chart1").append("svg")
@@ -19,7 +19,7 @@ var svg = d3.select("#channel_chart1").append("svg")
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform",
-        "translate(" + margin.left + "," + margin.top + ")");
+    "translate(" + margin.left + "," + margin.top + ")");
 
 var ourdata = new Array();
 var channeldata = new Array();
@@ -48,28 +48,30 @@ d3.json("/channelprog/" + profile, function (error, json) {
     if (error) return console.warn(error);
     console.log("got channel program data for profile " + profile);
     json.forEach(function (d) {
+
         if (!ourdata[d.channel]) {
             ourdata[d.channel] = {
                 data: [{
-                    time: parseTime(d.time),
+                    time: d.time,
                     power: +d.power,
                     channel: +d.channel
                 }]
             }
         } else {
             ourdata[d.channel].data.push({
-                time: parseTime(d.time),
+                time: d.time,
                 power: +d.power,
                 channel: +d.channel
             });
         }
     });
-    d3.json("/channels/", function (error, json) {
+    d3.json("/channels/"+profile, function (error, json) {
         if (error) return console.warn(error);
         json.forEach(function (d) {
             channeldata[d.id] = {
                 name: d.name,
-                class: d.class
+                class: d.class,
+                brightness: d.brightness,
             };
         });
 
@@ -82,22 +84,24 @@ d3.json("/channelprog/" + profile, function (error, json) {
 });
 
 function build_chart(data) {
+    var hours =[];
+    for (i=0;i<=24;i++) {hours.push(i*3600);}
     // scale the range of the data
-    scalex.domain([parseTime("00:00:00"), parseTime("24:00:00")]);
+    scalex.domain([0, 86400]);
     scaley.domain([0, 100]);
-
+    
     // add the X Axis
     svg.append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(scalex)
-            .ticks(24)
+            .tickValues(hours)
             .tickSize(-height)
-            .tickFormat(d3.timeFormat("%H:%M")))
+            .tickFormat(pretty_time))
         .selectAll("text")
         .style("text-anchor", "end")
         .attr("dx", "-.8em")
         .attr("dy", ".15em")
-        .attr("transform", "rotate(-25)");
+        .attr("transform", "rotate(-30)");
 
     // add the Y Axis
     svg.append("g")
@@ -127,6 +131,7 @@ function build_chart(data) {
 
 function dragstarted(d) {
     d3.select(this).raise().classed("active", true);
+    console.log("drag", d);
 }
 
 function dragged(d) {
@@ -134,16 +139,16 @@ function dragged(d) {
     var ny = d3.event.y;
 
     if (scaley.invert(ny) < 0) {
-        ny = scaley(0)
+        ny = scaley(0);
     };
     if (scaley.invert(ny) > 100) {
-        ny = scaley(100)
+        ny = scaley(100);
     };
-    if (scalex.invert(nx) < parseTime("00:00:00")) {
-        nx = scalex(parseTime("00:00:00"))
+    if (scalex.invert(nx) < 0) {
+        nx = scalex(0);
     };
-    if (scalex.invert(nx) > parseTime("24:00:00")) {
-        nx = scalex(parseTime("24:00:00"))
+    if (scalex.invert(nx) > 86400) {
+        nx = scalex(86400);
     };
 
 
@@ -152,11 +157,11 @@ function dragged(d) {
     d.time = scalex.invert(nx);
 
     ourdata[d.channel].data.sort(function (a, b) {
-        return (a.time < b.time)
+        return (a.time - b.time);
     });
     updatepath(d.channel);
     updateform(d.channel);
-    
+
     tooltip.style("left", (d3.event.sourceEvent.pageX + 4) + "px")
         .style("top", (d3.event.sourceEvent.pageY - 57) + "px");
     tooltip.select("#charttooltiptext").html(pretty_point(d, "<br>"));
@@ -194,6 +199,7 @@ function updatedot(i) {
                 .style("top", (d3.event.pageY - 57) + "px");
             tooltip.select("#charttooltiptext").html(pretty_point(d, "<br>"));
             tooltip.select("#buttonremove").on("click", removedot);
+            tooltip.select("#buttonadd").on("click", adddot);
             selectedpoint = d;
         })
         //.on("mouseout", function(d) {       
@@ -201,6 +207,7 @@ function updatedot(i) {
         //        .duration(500)      
         //        .style("opacity", 0);   
         //})
+
         .call(d3.drag()
             .on("start", dragstarted)
             .on("drag", dragged)
@@ -216,7 +223,6 @@ function updatedot(i) {
 
     svg.select("#channeldots" + i).selectAll("circle").data(ourdata[i].data).exit().remove();
 
-
 }
 
 function removedot() {
@@ -230,6 +236,25 @@ function removedot() {
     updatedot(selectedpoint.channel);
     console.log("Update: " + selectedpoint.channel);
     tooltip.style("opacity", "0");
+}
+
+function adddot() {
+    var index = ourdata[selectedpoint.channel].data.indexOf(selectedpoint);
+    //Dont allow the first or last elements to be deleted
+    if ((index == ourdata[selectedpoint.channel].data.length) && (index > 0)) {
+        index -= 1;
+        selectedpoint = ourdata[selectedpoint.channel].data[index];
+    }
+    var newpoint = {};
+    Object.assign(newpoint, selectedpoint);
+    newpoint.power = (newpoint.power + ourdata[selectedpoint.channel].data[index + 1].power) / 2;
+    newpoint.time = (newpoint.time + ourdata[selectedpoint.channel].data[index + 1].time) / 2;
+    //insert
+    ourdata[selectedpoint.channel].data.splice(index + 1, 0, newpoint);
+    console.log("Add: ", selectedpoint, newpoint);
+    updatepath(selectedpoint.channel);
+    updateform(selectedpoint.channel);
+    updatedot(selectedpoint.channel);
 
 }
 
@@ -239,7 +264,6 @@ function updateform(i) {
         tooltip.transition()
             .duration(200)
             .style("opacity", .8);
-        debug = d3.event;
         var bodyRect = document.body.getBoundingClientRect();
 
         tooltip.style("left", (d3.event.target.getBoundingClientRect().right) + "px")
@@ -259,16 +283,21 @@ function makechannelcontrolui() {
         var tt = t.append("div").attr("class", "panel-heading").style("padding", "2px").attr("role", "tab").attr("id", "heading" + i)
         tt.append("h4").attr("class", "panel-title");
         tt.append("a").attr("class", "collapsed btn btn-xs no-padding channel" + i).attr("role", "button").attr("data-toggle", "collapse").attr("data-parent", "#accordion").attr("href", "#collapse" + i).attr("aria-expanded", "true").attr("aria-controls", "collapse" + i).text("Channel #" + i);
+        debug = tt.append("input").attr("type","text").attr("data-provider","slider");
+        ourdata[i].brightness=new Slider(debug.node(),{max:100, value: channeldata[i].brightness});
+        tt.append("div").attr("class","btn btn-default btn-xs").attr("data",i).text("Save").on("click",function (d){
+            savechan(this.attributes.data.value);
+        });
+
         var contents = t.append("div").attr("id", "collapse" + i).attr("class", "panel-collapse collapse").attr("role", "tabpanel").attr("aria-labelledby", "heading" + i)
             .append("div").attr("class", "panel-body").append("form").attr("class", "form-inline");
         var t = contents.append("div").attr("class", "form-group");
         t.append("label").attr("for", "EditName" + i).text("Name");
-        t.append("input").attr("type", "text").attr("class", "form-control").attr("id", "EditName" + i).attr("value", channeldata[i].name);
+        t.append("input").attr("type", "text").attr("data",i).attr("class", "form-control").attr("id", "EditName" + i).attr("value", channeldata[i].name)
+        .on("change",function (d) {channeldata[this.attributes.data.value].name=this.value;});
         var t = contents.append("div").attr("class", "form-group");
         t.append("label").attr("for", "EditClass" + i).text("Class");
         t.append("input").attr("type", "text").attr("class", "form-control").attr("id", "EditClass" + i).attr("value", channeldata[i].class);
-        var t = contents.append("div").attr("class", "form-group");
-        t.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Update");
         var ul = contents.append("ul").attr("id", "pointlist" + i);
 
         updateform(i);
@@ -276,9 +305,34 @@ function makechannelcontrolui() {
 }
 
 function pretty_point(point, linebreak) {
- 
-    if (typeof(linebreak) === 'number' || linebreak instanceof Number) {
+
+    if (typeof (linebreak) === 'number' || linebreak instanceof Number) {
         linebreak = " ";
     }
-    return "Time: " + d3.timeFormat("%H:%M")(point.time) + linebreak + "Power %: " + Math.round(point.power);
+    return "Time: " + pretty_time(point.time) + linebreak + "Power %: " + Math.round(point.power);
+}
+
+function pretty_time(seconds,i) {
+
+    var date = new Date(seconds * 1000);
+    var hh = date.getUTCHours();
+    var mm = date.getUTCMinutes();
+    var ss = date.getSeconds();
+    if (hh < 10) { hh="0"+hh;}
+    if (mm < 10) { mm="0"+mm;}
+    if (ss < 10) { ss="0"+ss;}
+    if (ss ==0) {return hh+":"+mm }
+    return hh+":"+mm+":"+ss;
+}
+
+function savechan(chan) {
+    console.log("Save chan:"+chan+" Profile:"+profile);
+    d3.request("/channels/"+profile)
+    .header("Content-Type", "application/json")
+    .post(JSON.stringify({profile: profile, chan: channeldata[chan], data: ourdata[chan].data}),
+        function(err, rawData){
+            var data = JSON.parse(rawData.response);
+            console.log("got response", data);
+        }
+    );   
 }

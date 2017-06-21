@@ -71,7 +71,30 @@ app.get('/channelprog/:profile', function(req, res) {
     connection.end();
 });
 
-app.get('/channels/', function(req, res) {
+app.post('/channels/:profile', function(req, res) {
+    var profile = req.params.profile;
+      var connection = mysql.createConnection({
+        host: config.db_host,
+        user: config.db_user,
+        password: config.db_pass,
+        database: config.db_db,
+    });
+    console.log(req.body);
+    connection.connect();
+    console.log('update channels set name="'+req.body.chan.name+'",class="'+req.body.chan.class+'" where profile="'+ req.body.profile+'"');
+    connection.query('update channels set name="'+req.body.chan.name+'" where profile="'+ req.body.profile+'"', function(err, rows, fields) {
+        if (err) {
+            console.log(err);
+            return 
+        }
+        res.send({"status": "OK"});
+    });
+    console.log("Mysql channel data sent");
+    connection.end();
+
+    
+});
+app.get('/channels/:profile', function(req, res) {
     var profile = req.params.profile;
       var connection = mysql.createConnection({
         host: config.db_host,
@@ -81,7 +104,8 @@ app.get('/channels/', function(req, res) {
     });
 
     connection.connect();
-    connection.query('select * from channels', function(err, rows, fields) {
+    
+    connection.query('select * from channels where profile="'+ req.params.profile+'"', function(err, rows, fields) {
         if (err) {
             console.log(err);
             return
