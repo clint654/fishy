@@ -1,11 +1,11 @@
 var chan_number = 6;
 // set the dimensions and margins of the graph
 var margin = {
-    top: 20,
-    right: 20,
-    bottom: 50,
-    left: 50
-},
+        top: 20,
+        right: 20,
+        bottom: 50,
+        left: 50
+    },
     width = 900 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -19,7 +19,7 @@ var svg = d3.select("#channel_chart1").append("svg")
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform",
-    "translate(" + margin.left + "," + margin.top + ")");
+        "translate(" + margin.left + "," + margin.top + ")");
 
 var ourdata = new Array();
 var channeldata = new Array();
@@ -28,22 +28,6 @@ var tooltip;
 var selectedpoint;
 var debug;
 
-// get the data
-/*d3.csv("data.csv", function (error, data) {
-    if (error) throw error;
-
-    // format the data
-    data.forEach(function (d) {
-        if (!ourdata[d.channel]) {ourdata[d.channel] = {data: [{time: parseTime(d.time), power : +d.power, channel : +d.channel}]}}
-        else { ourdata[d.channel].data.push({time: parseTime(d.time), power : +d.power, channel : +d.channel});}
-    });
-
-    
-    build_chart(ourdata[1].data);
-    updatepath();
-    console.log(chan1.node().getPointAtLength(600));
-    console.log(chan1.node().getTotalLength());
-});*/
 d3.json("/channelprog/" + profile, function (error, json) {
     if (error) return console.warn(error);
     console.log("got channel program data for profile " + profile);
@@ -65,7 +49,7 @@ d3.json("/channelprog/" + profile, function (error, json) {
             });
         }
     });
-    d3.json("/channels/"+profile, function (error, json) {
+    d3.json("/channels/" + profile, function (error, json) {
         if (error) return console.warn(error);
         json.forEach(function (d) {
             channeldata[d.id] = {
@@ -74,7 +58,7 @@ d3.json("/channelprog/" + profile, function (error, json) {
                 brightness: d.brightness,
             };
         });
-
+        console.log(channeldata);
         build_chart(ourdata);
         updatepath();
         makechannelcontrolui();
@@ -84,12 +68,14 @@ d3.json("/channelprog/" + profile, function (error, json) {
 });
 
 function build_chart(data) {
-    var hours =[];
-    for (i=0;i<=24;i++) {hours.push(i*3600);}
+    var hours = [];
+    for (i = 0; i <= 24; i++) {
+        hours.push(i * 3600);
+    }
     // scale the range of the data
     scalex.domain([0, 86400]);
     scaley.domain([0, 100]);
-    
+
     // add the X Axis
     svg.append("g")
         .attr("transform", "translate(0," + height + ")")
@@ -282,10 +268,28 @@ function makechannelcontrolui() {
         var t = acc.append("div").attr("class", "panel panel-default");
         var tt = t.append("div").attr("class", "panel-heading").style("padding", "2px").attr("role", "tab").attr("id", "heading" + i)
         tt.append("h4").attr("class", "panel-title");
-        tt.append("a").attr("class", "collapsed btn btn-xs no-padding channel" + i).attr("role", "button").attr("data-toggle", "collapse").attr("data-parent", "#accordion").attr("href", "#collapse" + i).attr("aria-expanded", "true").attr("aria-controls", "collapse" + i).text("Channel #" + i);
-        debug = tt.append("input").attr("type","text").attr("data-provider","slider");
-        ourdata[i].brightness=new Slider(debug.node(),{max:100, value: channeldata[i].brightness});
-        tt.append("div").attr("class","btn btn-default btn-xs").attr("data",i).text("Save").on("click",function (d){
+        tt.append("a").attr("class", "collapsed btn btn-xs channel" + i).attr("role", "button").attr("data-toggle", "collapse").attr("data-parent", "#accordion").attr("href", "#collapse" + i).attr("aria-expanded", "true").attr("aria-controls", "collapse" + i).text("Channel #" + i);
+        debug = tt.append("input").attr("style", "margin: 0px 5px 0px 5px;").attr("type", "text").attr("data-provider", "slider");
+        ourdata[i].brightness = new Slider(debug.node(), {
+            tooltip: "hide",
+            max: 100,
+            value: channeldata[i].brightness
+        });
+        ourdata[i].brightness.on("slide", function (d) {
+            for (i = 0; i < chan_number; i++) {
+                channeldata[i].brightness = ourdata[i].brightness.getValue();
+                d3.select("#brightness" + i).node().value = channeldata[i].brightness;
+            }
+        });
+        tt.append("input").attr("style", "margin: 0px 5px 0px 5px;").attr("id", "brightness" + i).attr("min", "0").attr("max", "100").attr("data", i).attr("type", "number").attr("value", channeldata[i].brightness).on("change", function (d) {
+            for (i = 0; i < chan_number; i++) {
+                channeldata[i].brightness = d3.select("#brightness" + i).node().value;
+                ourdata[i].brightness.setValue(channeldata[i].brightness);
+
+            }
+            console.log(d, this);
+        });
+        tt.append("div").attr("class", "btn btn-default btn-xs").attr("data", i).text("Save").on("click", function (d) {
             savechan(this.attributes.data.value);
         });
 
@@ -293,8 +297,10 @@ function makechannelcontrolui() {
             .append("div").attr("class", "panel-body").append("form").attr("class", "form-inline");
         var t = contents.append("div").attr("class", "form-group");
         t.append("label").attr("for", "EditName" + i).text("Name");
-        t.append("input").attr("type", "text").attr("data",i).attr("class", "form-control").attr("id", "EditName" + i).attr("value", channeldata[i].name)
-        .on("change",function (d) {channeldata[this.attributes.data.value].name=this.value;});
+        t.append("input").attr("type", "text").attr("data", i).attr("class", "form-control").attr("id", "EditName" + i).attr("value", channeldata[i].name)
+            .on("change", function (d) {
+                channeldata[this.attributes.data.value].name = this.value;
+            });
         var t = contents.append("div").attr("class", "form-group");
         t.append("label").attr("for", "EditClass" + i).text("Class");
         t.append("input").attr("type", "text").attr("class", "form-control").attr("id", "EditClass" + i).attr("value", channeldata[i].class);
@@ -312,27 +318,40 @@ function pretty_point(point, linebreak) {
     return "Time: " + pretty_time(point.time) + linebreak + "Power %: " + Math.round(point.power);
 }
 
-function pretty_time(seconds,i) {
+function pretty_time(seconds, i) {
 
     var date = new Date(seconds * 1000);
     var hh = date.getUTCHours();
     var mm = date.getUTCMinutes();
     var ss = date.getSeconds();
-    if (hh < 10) { hh="0"+hh;}
-    if (mm < 10) { mm="0"+mm;}
-    if (ss < 10) { ss="0"+ss;}
-    if (ss ==0) {return hh+":"+mm }
-    return hh+":"+mm+":"+ss;
+    if (hh < 10) {
+        hh = "0" + hh;
+    }
+    if (mm < 10) {
+        mm = "0" + mm;
+    }
+    if (ss < 10) {
+        ss = "0" + ss;
+    }
+    if (ss == 0) {
+        return hh + ":" + mm
+    }
+    return hh + ":" + mm + ":" + ss;
 }
 
 function savechan(chan) {
-    console.log("Save chan:"+chan+" Profile:"+profile);
-    d3.request("/channels/"+profile)
-    .header("Content-Type", "application/json")
-    .post(JSON.stringify({profile: profile, chan: channeldata[chan], data: ourdata[chan].data}),
-        function(err, rawData){
-            var data = JSON.parse(rawData.response);
-            console.log("got response", data);
-        }
-    );   
+    console.log("Save chan:" + chan + " Profile:" + profile);
+    d3.request("/channels/" + profile)
+        .header("Content-Type", "application/json")
+        .post(JSON.stringify({
+                profile: profile,
+                chanid: chan,
+                chan: channeldata[chan],
+                data: ourdata[chan].data
+            }),
+            function (err, rawData) {
+                var data = JSON.parse(rawData.response);
+                console.log("got response", data);
+            }
+        );
 }

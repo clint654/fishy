@@ -43,14 +43,16 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
-app.get('/editprofile/:profile', function(req, res) {
+app.get('/editprofile/:profile', function (req, res) {
     var profile = req.params.profile;
-    res.render('light-channels',{profile: profile});
+    res.render('light-channels', {
+        profile: profile
+    });
 });
 
-app.get('/channelprog/:profile', function(req, res) {
+app.get('/channelprog/:profile', function (req, res) {
     var profile = req.params.profile;
-      var connection = mysql.createConnection({
+    var connection = mysql.createConnection({
         host: config.db_host,
         user: config.db_user,
         password: config.db_pass,
@@ -58,7 +60,7 @@ app.get('/channelprog/:profile', function(req, res) {
     });
 
     connection.connect();
-    connection.query('select * from channelprog order by channel,time', function(err, rows, fields) {
+    connection.query('select * from channelprog order by channel,time', function (err, rows, fields) {
         if (err) {
             console.log(err);
             return
@@ -71,32 +73,58 @@ app.get('/channelprog/:profile', function(req, res) {
     connection.end();
 });
 
-app.post('/channels/:profile', function(req, res) {
+app.post('/channels/:profile', function (req, res) {
     var profile = req.params.profile;
-      var connection = mysql.createConnection({
+    var connection = mysql.createConnection({
         host: config.db_host,
         user: config.db_user,
         password: config.db_pass,
         database: config.db_db,
     });
-    console.log(req.body);
     connection.connect();
-    console.log('update channels set name="'+req.body.chan.name+'",class="'+req.body.chan.class+'" where profile="'+ req.body.profile+'"');
-    connection.query('update channels set name="'+req.body.chan.name+'" where profile="'+ req.body.profile+'"', function(err, rows, fields) {
+    connection.query('update channels set name=' + connection.escape(req.body.chan.name) + ',brightness=' + connection.escape(req.body.chan.brightness) + ' where profile=' + connection.escape(req.body.profile) + ' and id=' + connection.escape(req.body.chanid), function (err, rows, fields) {
         if (err) {
             console.log(err);
-            return 
+            return
         }
-        res.send({"status": "OK"});
+        var sql = "delete from channelprog where channel=" +
+            connection.escape(req.body.chanid) +
+            " and profile=" +
+            connection.escape(req.body.profile);
+        connection.query(sql, function (err, rows, fields) {
+            if (err) {
+                console.log(err);
+                return
+            }
+            var sql = "insert into channelprog (profile,channel,time,power) values";
+            var values = [];
+            for (o in req.body.data) {
+                //console.log(req.body.data[o]);
+                values.push('(' + [req.body.profile, req.body.chanid, req.body.data[o].time, req.body.data[o].power].join(',') + ')');
+            }
+            sql += values.join(',');
+            
+            console.log(sql);
+            connection.query(sql, function (err, rows, fields) {
+                if (err) {
+                    console.log(err);
+                    return
+                }
+                res.send({
+                    "status": "OK"
+                });
+                connection.end();
+            });
+        });
     });
     console.log("Mysql channel data sent");
-    connection.end();
 
-    
+
+
 });
-app.get('/channels/:profile', function(req, res) {
+app.get('/channels/:profile', function (req, res) {
     var profile = req.params.profile;
-      var connection = mysql.createConnection({
+    var connection = mysql.createConnection({
         host: config.db_host,
         user: config.db_user,
         password: config.db_pass,
@@ -104,8 +132,8 @@ app.get('/channels/:profile', function(req, res) {
     });
 
     connection.connect();
-    
-    connection.query('select * from channels where profile="'+ req.params.profile+'"', function(err, rows, fields) {
+
+    connection.query('select * from channels where profile="' + req.params.profile + '"', function (err, rows, fields) {
         if (err) {
             console.log(err);
             return
@@ -116,10 +144,10 @@ app.get('/channels/:profile', function(req, res) {
     connection.end();
 });
 
-app.get('/status', function(req, res) {
+app.get('/status', function (req, res) {
     var status = {};
 });
 
-app.listen(3000, function() {
+app.listen(3000, function () {
     console.log('Fishy swimming on port 3000!');
 });

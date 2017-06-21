@@ -3,7 +3,7 @@
         stroke: lightblue;
         background: lightblue;
         stroke-width: 3px;
-        ;
+        margin: 0px 5px 0px 5px;
     }
 
     .channel1 {
@@ -11,6 +11,7 @@
         stroke: orange;
         background: orange;
         stroke-width: 3px;
+        margin: 0px 5px 0px 5px;
     }
 
     .channel2 {
@@ -18,6 +19,7 @@
         stroke: green;
         background: green;
         stroke-width: 3px;
+        margin: 0px 5px 0px 5px;
     }
 
     .channel3 {
@@ -25,6 +27,7 @@
         stroke: blue;
         background: blue;
         stroke-width: 3px;
+        margin: 0px 5px 0px 5px;
     }
 
     .channel4 {
@@ -32,6 +35,7 @@
         stroke: fuchsia;
         background: fuchsia;
         stroke-width: 3px;
+        margin: 0px 5px 0px 5px;
     }
 
     .channel5 {
@@ -39,6 +43,7 @@
         stroke: coral;
         background: coral;
         stroke-width: 3px;
+        margin: 0px 5px 0px 5px;
     }
 
     .channel6 {
@@ -46,6 +51,7 @@
         stroke: palevioletred;
         background: palevioletred;
         stroke-width: 3px;
+        margin: 0px 5px 0px 5px;
     }
 
     .tick line {
