@@ -1,11 +1,11 @@
-var chan_number = 6;
+var chan_number = 7;
 // set the dimensions and margins of the graph
 var margin = {
-        top: 20,
-        right: 20,
-        bottom: 50,
-        left: 50
-    },
+    top: 20,
+    right: 20,
+    bottom: 50,
+    left: 50
+},
     width = 900 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -19,14 +19,17 @@ var svg = d3.select("#channel_chart1").append("svg")
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform",
-        "translate(" + margin.left + "," + margin.top + ")");
+    "translate(" + margin.left + "," + margin.top + ")");
 
 var ourdata = new Array();
 var channeldata = new Array();
+var channelintensitydetail = new Array();
 var valueline; //TODO - array with selectable type
 var tooltip;
 var selectedpoint;
 var debug;
+var showeditscale = false;
+
 
 d3.json("/channelprog/" + profile, function (error, json) {
     if (error) return console.warn(error);
@@ -60,6 +63,7 @@ d3.json("/channelprog/" + profile, function (error, json) {
         });
         console.log(channeldata);
         build_chart(ourdata);
+        build_intensity(ourdata);
         updatepath();
         makechannelcontrolui();
     });
@@ -98,7 +102,11 @@ function build_chart(data) {
             return scalex(d.time);
         })
         .y(function (d) {
-            return scaley(d.power);
+            if (showeditscale) {
+                return scaley(d.power * channeldata[d.channel].brightness / 100);
+            } else {
+                return scaley(d.power);
+            }
         })
         .curve(d3.curveMonotoneX);
 
@@ -140,6 +148,10 @@ function dragged(d) {
 
     d3.select(this).attr("cx", d.x = nx).attr("cy", d.y = ny);
     d.power = scaley.invert(ny);
+    if (showeditscale) {
+        d.power = d.power * 100 / channeldata[d.channel].brightness;
+        if (d.power > 100) { d.power = 100; }
+    }
     d.time = scalex.invert(nx);
 
     ourdata[d.channel].data.sort(function (a, b) {
@@ -155,6 +167,7 @@ function dragged(d) {
 
 function dragended(d) {
     d3.select(this).classed("active", false);
+    updatedot(d.channel);
 }
 
 function updatepath(i) {
@@ -175,7 +188,11 @@ function updatedot(i) {
             return scalex(d.time);
         })
         .attr("cy", function (d) {
-            return scaley(d.power);
+            if (showeditscale) {
+                return scaley(d.power * channeldata[d.channel].brightness / 100);
+            } else {
+                return scaley(d.power);
+            }
         })
         .on("mouseover", function (d) {
             tooltip.transition()
@@ -204,7 +221,11 @@ function updatedot(i) {
             return scalex(d.time);
         })
         .attr("cy", function (d) {
-            return scaley(d.power);
+            if (showeditscale) {
+                return scaley(d.power * channeldata[d.channel].brightness / 100);
+            } else {
+                return scaley(d.power);
+            }
         });
 
     svg.select("#channeldots" + i).selectAll("circle").data(ourdata[i].data).exit().remove();
@@ -279,6 +300,8 @@ function makechannelcontrolui() {
             for (i = 0; i < chan_number; i++) {
                 channeldata[i].brightness = ourdata[i].brightness.getValue();
                 d3.select("#brightness" + i).node().value = channeldata[i].brightness;
+                updatedot(i);
+                updatepath(i);
             }
         });
         tt.append("input").attr("style", "margin: 0px 5px 0px 5px;").attr("id", "brightness" + i).attr("min", "0").attr("max", "100").attr("data", i).attr("type", "number").attr("value", channeldata[i].brightness).on("change", function (d) {
@@ -344,14 +367,57 @@ function savechan(chan) {
     d3.request("/channels/" + profile)
         .header("Content-Type", "application/json")
         .post(JSON.stringify({
-                profile: profile,
-                chanid: chan,
-                chan: channeldata[chan],
-                data: ourdata[chan].data
-            }),
-            function (err, rawData) {
-                var data = JSON.parse(rawData.response);
-                console.log("got response", data);
-            }
+            profile: profile,
+            chanid: chan,
+            chan: channeldata[chan],
+            data: ourdata[chan].data
+        }),
+        function (err, rawData) {
+            var data = JSON.parse(rawData.response);
+            console.log("got response", data);
+        }
         );
 }
+
+function swapviewtype() {
+    console.log("change scale", d3.select('input[name="optionsRadios"]:checked').node().value);
+    showeditscale = (d3.select('input[name="optionsRadios"]:checked').node().value == "scaled");
+    for (i = 0; i < chan_number; i++) {
+        updatepath(i);
+        updatedot(i);
+
+    }
+}
+
+function build_intensity() {
+
+
+
+}
+
+
+function updateintensity(channel) {
+    console.log("update intensity");
+    var channelpath = d3.select("#channel"+channel).node();
+    var len = channelpath.getTotalLength();
+    var interval=10;
+    var lx = 0;
+    var ly = 0;
+    channelintensitydetail[channel]={data: []};
+    for (i = 0; i < len; i++) {
+        var p = channelpath.getPointAtLength(i);
+        var x = Math.round(scalex.invert(p.x)/interval);
+        var y = scaley.invert(p.y);
+        for (ix = lx; ix <= x; ix++) {
+            channelintensitydetail[channel].data[ix*interval]=y;
+        }
+        lx = x;
+        ly = y;
+
+    }
+
+    channelintensitydetail[channel].data.forEach(function (d,i) {
+        console.log(pretty_time(i),d);
+    });
+}
+
