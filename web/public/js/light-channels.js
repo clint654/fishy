@@ -1,11 +1,11 @@
 var chan_number = 7;
 // set the dimensions and margins of the graph
 var margin = {
-    top: 20,
-    right: 20,
-    bottom: 50,
-    left: 50
-},
+        top: 20,
+        right: 20,
+        bottom: 50,
+        left: 50
+    },
     width = 900 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -19,7 +19,7 @@ var svg = d3.select("#channel_chart1").append("svg")
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform",
-    "translate(" + margin.left + "," + margin.top + ")");
+        "translate(" + margin.left + "," + margin.top + ")");
 
 var ourdata = new Array();
 var channeldata = new Array();
@@ -30,6 +30,54 @@ var selectedpoint;
 var debug;
 var showeditscale = false;
 
+d3.select("body")
+    .on("keydown", function () {
+        var c = d3.select("#channel_chart1").node();
+
+        if (!selectedpoint) {
+            return
+        };
+        switch (d3.event.keyCode) {
+            case 37:
+                selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 - 60;
+                event.preventDefault();
+                break;
+            case 38:
+                selectedpoint.power++;
+                event.preventDefault();
+                break;
+            case 39:
+                selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 + 60;
+                event.preventDefault();
+                break;
+            case 40:
+                selectedpoint.power--;
+                event.preventDefault();
+                break;
+        };
+        if (selectedpoint.power < 0) {
+            selectedpoint.power = 0;
+        }
+        if (selectedpoint.time < 0) {
+            selectedpoint.time = 0;
+        }
+        if (selectedpoint.power > 100) {
+            selectedpoint.power = 100;
+        }
+        if (selectedpoint.time > 86400) {
+            selectedpoint.time = 86400;
+        }
+        updatedot(selectedpoint.channel);
+        updatepath(selectedpoint.channel);
+        tooltip.style("left", (scalex(selectedpoint.time) + margin.left + 4 + c.offsetLeft) + "px");
+        if (showeditscale) {
+            tooltip.style("top", (margin.top + c.offsetTop + scaley(selectedpoint.power * channeldata[selectedpoint.channel].brightness / 100) - 57) + "px");
+
+        } else {
+            tooltip.style("top", (margin.top + c.offsetTop + scaley(selectedpoint.power) - 57) + "px");
+        }
+        tooltip.select("#charttooltiptext").html(pretty_point(selectedpoint, "<br>"));
+    });
 
 d3.json("/channelprog/" + profile, function (error, json) {
     if (error) return console.warn(error);
@@ -150,7 +198,9 @@ function dragged(d) {
     d.power = scaley.invert(ny);
     if (showeditscale) {
         d.power = d.power * 100 / channeldata[d.channel].brightness;
-        if (d.power > 100) { d.power = 100; }
+        if (d.power > 100) {
+            d.power = 100;
+        }
     }
     d.time = scalex.invert(nx);
 
@@ -367,15 +417,15 @@ function savechan(chan) {
     d3.request("/channels/" + profile)
         .header("Content-Type", "application/json")
         .post(JSON.stringify({
-            profile: profile,
-            chanid: chan,
-            chan: channeldata[chan],
-            data: ourdata[chan].data
-        }),
-        function (err, rawData) {
-            var data = JSON.parse(rawData.response);
-            console.log("got response", data);
-        }
+                profile: profile,
+                chanid: chan,
+                chan: channeldata[chan],
+                data: ourdata[chan].data
+            }),
+            function (err, rawData) {
+                var data = JSON.parse(rawData.response);
+                console.log("got response", data);
+            }
         );
 }
 
@@ -398,26 +448,27 @@ function build_intensity() {
 
 function updateintensity(channel) {
     console.log("update intensity");
-    var channelpath = d3.select("#channel"+channel).node();
+    var channelpath = d3.select("#channel" + channel).node();
     var len = channelpath.getTotalLength();
-    var interval=10;
+    var interval = 10;
     var lx = 0;
     var ly = 0;
-    channelintensitydetail[channel]={data: []};
+    channelintensitydetail[channel] = {
+        data: []
+    };
     for (i = 0; i < len; i++) {
         var p = channelpath.getPointAtLength(i);
-        var x = Math.round(scalex.invert(p.x)/interval);
+        var x = Math.round(scalex.invert(p.x) / interval);
         var y = scaley.invert(p.y);
         for (ix = lx; ix <= x; ix++) {
-            channelintensitydetail[channel].data[ix*interval]=y;
+            channelintensitydetail[channel].data[ix * interval] = y;
         }
         lx = x;
         ly = y;
 
     }
 
-    channelintensitydetail[channel].data.forEach(function (d,i) {
-        console.log(pretty_time(i),d);
+    channelintensitydetail[channel].data.forEach(function (d, i) {
+        console.log(pretty_time(i), d);
     });
 }
-
