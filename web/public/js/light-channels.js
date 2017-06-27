@@ -1,11 +1,11 @@
 var chan_number = 7;
 // set the dimensions and margins of the graph
 var margin = {
-        top: 20,
-        right: 20,
-        bottom: 50,
-        left: 50
-    },
+    top: 20,
+    right: 20,
+    bottom: 50,
+    left: 50
+},
     width = 900 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
 
@@ -19,11 +19,11 @@ var svg = d3.select("#channel_chart1").append("svg")
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform",
-        "translate(" + margin.left + "," + margin.top + ")");
+    "translate(" + margin.left + "," + margin.top + ")");
 
 var ourdata = new Array();
 var channeldata = new Array();
-var channelintensitydetail = new Array();
+var channelintensitydetail = {};
 var valueline; //TODO - array with selectable type
 var tooltip;
 var selectedpoint;
@@ -39,7 +39,11 @@ d3.select("body")
         };
         switch (d3.event.keyCode) {
             case 37:
-                selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 - 60;
+                if (d3.event.ctrlKey) {
+                    selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 - 360;
+                } else {
+                    selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 - 60;
+                }
                 event.preventDefault();
                 break;
             case 38:
@@ -47,7 +51,9 @@ d3.select("body")
                 event.preventDefault();
                 break;
             case 39:
-                selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 + 60;
+                if (d3.event.ctrlKey) {
+                    selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 + 360;
+                } else { selectedpoint.time = Math.round(selectedpoint.time / 60) * 60 + 60; }
                 event.preventDefault();
                 break;
             case 40:
@@ -111,7 +117,7 @@ d3.json("/channelprog/" + profile, function (error, json) {
         });
         console.log(channeldata);
         build_chart(ourdata);
-        build_intensity(ourdata);
+        
         updatepath();
         makechannelcontrolui();
     });
@@ -417,16 +423,17 @@ function savechan(chan) {
     d3.request("/channels/" + profile)
         .header("Content-Type", "application/json")
         .post(JSON.stringify({
-                profile: profile,
-                chanid: chan,
-                chan: channeldata[chan],
-                data: ourdata[chan].data
-            }),
-            function (err, rawData) {
-                var data = JSON.parse(rawData.response);
-                console.log("got response", data);
-            }
+            profile: profile,
+            chanid: chan,
+            chan: channeldata[chan],
+            data: ourdata[chan].data
+        }),
+        function (err, rawData) {
+            var data = JSON.parse(rawData.response);
+            console.log("got response", data);
+        }
         );
+    updateintensity(chan);    
 }
 
 function swapviewtype() {
@@ -439,13 +446,6 @@ function swapviewtype() {
     }
 }
 
-function build_intensity() {
-
-
-
-}
-
-
 function updateintensity(channel) {
     console.log("update intensity");
     var channelpath = d3.select("#channel" + channel).node();
@@ -453,22 +453,36 @@ function updateintensity(channel) {
     var interval = 10;
     var lx = 0;
     var ly = 0;
-    channelintensitydetail[channel] = {
-        data: []
+    channelintensitydetail = {
+        data: [],
+        brightness: channeldata[channel].brightness,
+        channel: channel 
     };
     for (i = 0; i < len; i++) {
         var p = channelpath.getPointAtLength(i);
         var x = Math.round(scalex.invert(p.x) / interval);
         var y = scaley.invert(p.y);
         for (ix = lx; ix <= x; ix++) {
-            channelintensitydetail[channel].data[ix * interval] = y;
+            channelintensitydetail.data[ix]={time: ix * interval, power: y};
         }
         lx = x;
         ly = y;
-
     }
-
-    channelintensitydetail[channel].data.forEach(function (d, i) {
-        console.log(pretty_time(i), d);
-    });
+    for (ix = lx; ix <= 86400/interval; ix++) {
+            channelintensitydetail.data[ix]={time: ix * interval, power: ly};
+    }
+  console.log("Save intensity:" + channel + "Profile:" + profile);
+    d3.request("/saveintensity/" + profile)
+        .header("Content-Type", "application/json")
+        .post(JSON.stringify({
+            profile: profile,
+            channel: channel,
+            data: channelintensitydetail.data
+        }),
+        function (err, rawData) {
+            var data = JSON.parse(rawData.response);
+            console.log("got response", data);
+        }
+    );
+    
 }
