@@ -38,7 +38,7 @@ app.use(expressSession({
     }
 }));
 
-app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({
     extended: true
 }));
@@ -103,7 +103,7 @@ app.post('/channels/:profile', function (req, res) {
                 values.push('(' + [req.body.profile, req.body.chanid, req.body.data[o].time, req.body.data[o].power].join(',') + ')');
             }
             sql += values.join(',');
-            
+
             console.log(sql);
             connection.query(sql, function (err, rows, fields) {
                 if (err) {
@@ -120,7 +120,6 @@ app.post('/channels/:profile', function (req, res) {
     console.log("Mysql channel data sent");
 
 
-
 });
 
 app.post('/saveintensity/:profile', function (req, res) {
@@ -132,39 +131,38 @@ app.post('/saveintensity/:profile', function (req, res) {
         database: config.db_db,
     });
     connection.connect();
-         
-     sql = "delete from time_intensity where channel=" +
-            connection.escape(req.body.channel) +
-            " and profile=" +
-            connection.escape(req.body.profile);
-            console.log(sql);
+
+    sql = "delete from time_intensity where channel=" +
+        connection.escape(req.body.channel) +
+        " and profile=" +
+        connection.escape(req.body.profile);
+    console.log(sql);
+    connection.query(sql, function (err, rows, fields) {
+        if (err) {
+            console.log(err);
+            return
+        }
+        var sql = "insert into time_intensity (profile,channel,time,power) values";
+        var values = [];
+        for (o in req.body.data) {
+            //console.log(req.body.data[o]);
+            values.push('(' + [req.body.profile, req.body.channel, req.body.data[o].time, req.body.data[o].power].join(',') + ')');
+        }
+        sql += values.join(',');
+
+        console.log(sql);
         connection.query(sql, function (err, rows, fields) {
             if (err) {
                 console.log(err);
                 return
             }
-            var sql = "insert into time_intensity (profile,channel,time,power) values";
-            var values = [];
-            for (o in req.body.data) {
-                //console.log(req.body.data[o]);
-                values.push('(' + [req.body.profile, req.body.channel, req.body.data[o].time, req.body.data[o].power].join(',') + ')');
-            }
-            sql += values.join(',');
-            
-            console.log(sql);
-            connection.query(sql, function (err, rows, fields) {
-                if (err) {
-                    console.log(err);
-                    return
-                }
-                res.send({
-                    "status": "OK"
-                });
-                connection.end();
+            res.send({
+                "status": "OK"
             });
+            connection.end();
         });
+    });
 
-    
     //console.log(req.body.data);
     //console.log("Mysql channel data sent");
 
