@@ -67,7 +67,7 @@ class ArduinoSerial(object):
 
     def process_replies(self,buffer):
       """process the replies"""
-      for reply in self.buf:
+      
         
 
     def ping(self):
