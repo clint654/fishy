@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """fishy controller"""
-#this script communicates with the arduino to control lights and relays and poll for parameters"""
+# this script communicates with the arduino to control lights and relays and poll for parameters"""
 
 # pylint: disable=C0103
 
@@ -11,103 +11,143 @@ import serial
 
 VERSION = "1.0"
 
+
 class ArduinoSerial(object):
-    """The Connection to the arduino Fish controller"""
-    Ser = None
-    buf = []
-    channel_current_lev = [0, 32, 0, 0, 0, 0, 0, 0]
-    channel_desired_lev = [0, 5, 0, 64, 0, 255, 0, 0]
+  """The Connection to the arduino Fish controller"""
+  Ser = None
+  buf = []
+  channel_current_lev = [0, 32, 0, 0, 0, 0, 0, 0]
+  channel_desired_lev = [0, 5, 0, 64, 0, 255, 0, 0]
+  temps = [-1, -1, -1, -1]
+  switches = [-1, -1, -1]
+  relays = [-1, -1, -1, -1]
 
-    def __init__(self, SerialName):
-        "Opens the serial interface"
+  def __init__(self, SerialName):
+    "Opens the serial interface"
 
-        self.Ser = serial.Serial(SerialName, 115200, timeout=1, dsrdtr=False)  # open serial port
-        print self.Ser
-        time.sleep(0.1)
+    self.Ser = serial.Serial(SerialName, 115200, timeout=1, dsrdtr=False)  # open serial port
+    print self.Ser
+    time.sleep(0.1)
 
-    def get_all_parameters(self):
-        """Sends a ? to the arduino to return all current values"""
+  def get_all_parameters(self):
+    """Sends a ? to the arduino to return all current values"""
+    self.Ser.write('?\n')
 
-        print self.Ser
-        self.Ser.write('?\n')
-        time.sleep(1)
-        print self.read_buffer()
+  def close(self):
+    """Close Serial Interface"""
+    self.Ser.close()
 
-    def close(self):
-        """Close Serial Interface"""
-        self.Ser.close()
+  def read_buffer(self):
+    """reads all strings in the Serial Buffer"""
+    while self.Ser.inWaiting() > 0:
+      line = self.Ser.readline().rstrip()
+      self.buf.append({'time': time.time(), 'line': line})
+      # self.buf.append(line)
+    return self.buf
 
-    def read_buffer(self):
-        """reads all strings in the Serial Buffer"""
-        while self.Ser.inWaiting() > 0:
-            line = self.Ser.readline()
-            #self.buf.append({"time": time.time() , "res": line})
-            self.buf.append(line)
-        return self.buf
+  def parse_line(self, line):
+    """parse the line"""
 
-    def parse_line(self,line):
-        """parse the line"""
+  def update_channels(self):
+    """update the channels"""
+    print "Update"
+    print self.channel_current_lev
+    print self.channel_desired_lev
+    for i in range(0, 7):
+      diff = (self.channel_desired_lev[i] - self.channel_current_lev[i])
+      if (diff != 0):
+        print "change {0}".format(diff)
+        if (abs(diff) <= 4):
+          self.channel_current_lev[i] = self.channel_desired_lev[i]
+        elif (diff > 0):
+          self.channel_current_lev[i] += 4;
+        else:
+          self.channel_current_lev[i] -= 4;
+        self.Ser.write("l {0} {1}\n".format(i, self.channel_current_lev[i]))
 
-    def update_channels(self):
-        """update the channels"""
-        print "Update" 
-        print self.channel_current_lev;
-        print self.channel_desired_lev;
-        for i in range(0,6):
-          diff = (self.channel_desired_lev[i] - self.channel_current_lev[i])
-          if (diff !=0):
-            print "change {0}".format(diff)
-            if (abs(diff) <=4):
-              self.channel_current_lev[i]=self.channel_desired_lev[i]
-            elif (diff>0):
-              self.channel_current_lev[i]+=4;
-            else:
-              self.channel_current_lev[i]-=4;
-          self.Ser.write("l {0} {1}\n".format(i,self.channel_current_lev[i]))
+  def set_channels(self):
+    """set the all channel state"""
+    for i in range(0, 7):
+      self.Ser.write("l {0} {1}\n".format(i, self.channel_desired_lev[i]))
 
-    def process_replies(self,buffer):
-      """process the replies"""
-      
-        
+  def process_replies(self):
+    """process the replies"""
+    while len(self.buf) > 0:
+      o = self.buf.pop(0)
+      line = o['line']
+      now = o['time']
+      if line.find("Welcome") != -1:  # TODO SET INITIAL STATE
+        print "ARDUINO RESET"
+        self.set_channels()
+        self.get_all_parameters()
 
-    def ping(self):
-      """ping"""
-      self.Ser.write("Ping\n") 
+      elif line[0:4] == 'Pong':
+        self.pongtime = now
+        print "PONG {0}".format(self.pongtime)
+
+      elif line[0:2] == 'C ':
+        o = line.split(' ')
+        for i in range(0, 7):
+          self.channel_current_lev[i] = int(o[i + 1])
+
+      elif line[0:2] == 'T ':
+        o = line.split(' ')
+        for i in range(0, 2):
+          self.temps[i] = float(o[i + 1])
+        print "TEMPERATURE {0}".format(self.temps)  #TODO pop mysql
+
+      elif line[0:2] == 'S ':
+        o = line.split(' ')
+        for i in range(0, 2):
+          self.switches[i] = float(o[i + 1])
+        print "SWITCH {0}".format(self.switches)  # TODO pop mysql
+
+      elif line[0:2] == 'R ':
+        o = line.split(' ')
+        for i in range(0, 4):
+          self.relays[i] = float(o[i + 1])
+        print "RELAYS {0}".format(self.relays)  # TODO pop mysql
+
+      else:
+        print line
+
+  def ping(self):
+    """ping"""
+    self.Ser.write("Ping\n")
 
 
 print "Welcome to Fishy Controller version: " + VERSION + "\n"
 
 Controller = ArduinoSerial('/dev/ttyACM0')
-time.sleep(1) #arduino needs to reset after
-
-print Controller.Ser.write("?\n")
-print Controller.ping()
-print Controller.read_buffer()
+time.sleep(1)  # arduino needs to reset after
 
 now = time.time()
-start = time.time()
-lasttime = time.time()
-lastping = time.time()
-lastlights = time.time()
+start = now
+lasttime = now
+lastping = now
+lastlights = now
+lastparams = now
 
 while True:
   now = time.time()
-  #read any new lines into the buffer
+  # read any new lines into the buffer
   Controller.read_buffer()
+  Controller.process_replies()
 
-  #Every 5 Seconds ping
-  if int(now/4) > lastping/4:
+  # Every 15 Seconds ping
+  if int(now / 15) > lastping / 15:
     Controller.ping()
-    lastping=now
+    lastping = now
     print Controller.buf
 
-  #Update Lights
-  if int(now/2) > lastlights/2:
+  # Every so often refresh all states
+  if int(now / 120) > lastparams / 120:
+    Controller.get_all_parameters()
+    lastparams = now
+
+  # Adjust Lights
+  if int(now / 1) > lastlights / 1:
     Controller.update_channels()
-    lastlights=now
+    lastlights = now
 
-  #print "time: {0} {1}".format(now,lastping)
-
-  time.sleep(0.2)
-  
-
+  time.sleep(0.1)
