@@ -17,3 +17,8 @@ create table profiles (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(50) DEFAULT 
 insert into profiles (name) values("new profile");
 
 create table time_intensity (profile INT, index (profile),channel SMALLINT, index (channel),time INT, power float);
+
+create table current_status (profile INT);
+
+create table temperatures (time timestamp, sensor SMALLINT, temp float);
+

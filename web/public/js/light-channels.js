@@ -461,7 +461,7 @@ function updateintensity(channel) {
     for (i = 0; i < len; i++) {
         var p = channelpath.getPointAtLength(i);
         var x = Math.round(scalex.invert(p.x) / interval);
-        var y = scaley.invert(p.y);
+        var y = scaley.invert(p.y)*channeldata[channel].brightness/100*2.55;
         for (ix = lx; ix <= x; ix++) {
             channelintensitydetail.data[ix]={time: ix * interval, power: y};
         }

@@ -136,9 +136,10 @@ app.post('/saveintensity/:profile', function (req, res) {
         connection.escape(req.body.channel) +
         " and profile=" +
         connection.escape(req.body.profile);
-    console.log(sql);
+    //console.log(sql);
     connection.query(sql, function (err, rows, fields) {
         if (err) {
+            console.log("error");
             console.log(err);
             return
         }
@@ -153,12 +154,14 @@ app.post('/saveintensity/:profile', function (req, res) {
         console.log(sql);
         connection.query(sql, function (err, rows, fields) {
             if (err) {
+                console.log("error");
                 console.log(err);
                 return
             }
             res.send({
                 "status": "OK"
             });
+            console.log(rows);
             connection.end();
         });
     });

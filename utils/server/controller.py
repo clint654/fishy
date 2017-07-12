@@ -8,15 +8,16 @@
 import sys
 import time
 import serial
+import math
+import MySQLdb
 
 VERSION = "1.0"
-
 
 class ArduinoSerial(object):
   """The Connection to the arduino Fish controller"""
   Ser = None
   buf = []
-  channel_current_lev = [0, 32, 0, 0, 0, 0, 0, 0]
+  channel_current_lev = [0, 0, 0, 0, 0, 0, 0, 0]
   channel_desired_lev = [0, 5, 0, 64, 0, 255, 0, 0]
   temps = [-1, -1, -1, -1]
   switches = [-1, -1, -1]
@@ -50,9 +51,9 @@ class ArduinoSerial(object):
 
   def update_channels(self):
     """update the channels"""
-    print "Update"
-    print self.channel_current_lev
-    print self.channel_desired_lev
+    #print "Update
+    #print self.channel_current_lev
+    #print self.channel_desired_lev
     for i in range(0, 7):
       diff = (self.channel_desired_lev[i] - self.channel_current_lev[i])
       if (diff != 0):
@@ -69,6 +70,7 @@ class ArduinoSerial(object):
     """set the all channel state"""
     for i in range(0, 7):
       self.Ser.write("l {0} {1}\n".format(i, self.channel_desired_lev[i]))
+      self.channel_current_lev[i] = self.channel_desired_lev[i]
 
   def process_replies(self):
     """process the replies"""
@@ -127,6 +129,19 @@ lasttime = now
 lastping = now
 lastlights = now
 lastparams = now
+lastlightsql = now
+
+db = MySQLdb.connect("localhost", "fishy", "fishy", "fishy", autocommit=True)
+curs = db.cursor()
+
+#get initial state
+sqltime = round(((time.time()-time.timezone)%86400)/10,0)*10
+print sqltime
+curs.execute("""select a.channel,a.power from time_intensity a join current_status b on (a.profile=b.profile) where time=%s; """, [sqltime])
+for row in curs.fetchall():
+    Controller.channel_desired_lev[row[0]] = int(row[1])
+
+
 
 while True:
   now = time.time()
@@ -134,11 +149,10 @@ while True:
   Controller.read_buffer()
   Controller.process_replies()
 
-  # Every 15 Seconds ping
-  if int(now / 15) > lastping / 15:
+  # Every 30 Seconds ping
+  if int(now / 60) > lastping / 60:
     Controller.ping()
     lastping = now
-    print Controller.buf
 
   # Every so often refresh all states
   if int(now / 120) > lastparams / 120:
@@ -146,8 +160,19 @@ while True:
     lastparams = now
 
   # Adjust Lights
-  if int(now / 1) > lastlights / 1:
+  if int(now / 0.5) > lastlights / 0.5:
     Controller.update_channels()
     lastlights = now
 
-  time.sleep(0.1)
+  #Get new light values from sql
+  if int(now / 10) > lastlightsql/10:
+    sqltime = round(((time.time()-time.timezone) % 86400) / 10, 0) * 10
+    print "Check SQL {0}\n".format(sqltime)
+    curs.execute("select a.channel,a.power from time_intensity a join current_status b using (profile) where time=%s",[sqltime])
+    for row in curs.fetchall():
+      chan=int(row[0])
+      power=round(row[1],0)
+      Controller.channel_desired_lev[chan] = power
+    lastlightsql=now
+
+  time.sleep(0.05)
