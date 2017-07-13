@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="1ed06a08-82e3-49a4-ae7a-d35dd4f20822" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/utils/arduino/test_light1/test_light1.ino" afterPath="$PROJECT_DIR$/utils/arduino/test_light1/test_light1.ino" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/web/main.js" afterPath="$PROJECT_DIR$/web/main.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/web/views/light-channels.hbs" afterPath="$PROJECT_DIR$/web/views/light-channels.hbs" />
-    </list>
+    <list default="true" id="1ed06a08-82e3-49a4-ae7a-d35dd4f20822" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,7 +18,7 @@
       <file leaf-file-name="controller.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/utils/server/controller.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="162">
+            <state relative-caret-position="2538">
               <caret line="171" column="31" lean-forward="false" selection-start-line="170" selection-start-column="18" selection-end-line="171" selection-end-column="31" />
               <folding>
                 <element signature="e#168#178#0" expanded="true" />
@@ -44,8 +40,8 @@
       <file leaf-file-name="main.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/web/main.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="519">
-              <caret line="163" column="8" lean-forward="false" selection-start-line="163" selection-start-column="8" selection-end-line="163" selection-end-column="8" />
+            <state relative-caret-position="555">
+              <caret line="165" column="8" lean-forward="false" selection-start-line="165" selection-start-column="8" selection-end-line="165" selection-end-column="8" />
               <folding />
             </state>
           </provider>
@@ -420,8 +416,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/web/main.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="519">
-          <caret line="163" column="8" lean-forward="false" selection-start-line="163" selection-start-column="8" selection-end-line="163" selection-end-column="8" />
+        <state relative-caret-position="555">
+          <caret line="165" column="8" lean-forward="false" selection-start-line="165" selection-start-column="8" selection-end-line="165" selection-end-column="8" />
           <folding />
         </state>
       </provider>
@@ -436,7 +432,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/utils/server/controller.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="162">
+        <state relative-caret-position="2538">
           <caret line="171" column="31" lean-forward="false" selection-start-line="170" selection-start-column="18" selection-end-line="171" selection-end-column="31" />
           <folding>
             <element signature="e#168#178#0" expanded="true" />

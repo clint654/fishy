@@ -238,7 +238,7 @@ app.get('/profiles', function (req, res) {
     });
 });
 
-app.get('/newchannnel/:profile', function (req, res) {
+app.get('/newprofile/:profile', function (req, res) {
     var profile = req.params.profile;
     var connection = mysql.createConnection({
         host: config.db_host,
