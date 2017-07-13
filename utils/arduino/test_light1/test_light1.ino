@@ -15,7 +15,7 @@ float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
 
 //light channels
 byte channel_pin[] = {9,2,6,4,8,5,7,3};
-byte channel_brightness[] = {1,1,1,1,1,1,1,1};
+byte channel_brightness[] = {0,0,0,0,0,0,0,0};
 
 byte relay_pin[] = {22,23,24,25};
 byte relay_state[] = {1,1,1,1};

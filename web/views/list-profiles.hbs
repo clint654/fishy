@@ -1,0 +1,19 @@
+<script>
+
+</script>
+<h1>Current Profile: {{current_profile}}</h1>
+<div class="container">
+    {{#profiles}}
+    <li>{{id}}: <input type="text" value="{{name}}"></input><a href="/editprofile/{{id}}" type="button" class="btn btn-default btn-sm">Edit</a>
+        <button type="button" class="btn btn-sm btn-default">Make Current</button> <button type="button" class="btn btn-sm btn-default">Copy from</button>
+        <select name="prof{{id}}">
+            {{#../profiles}}
+            <option value="{{id}} ">{{id}}: {{name}}</option>
+            {{/../profiles}}
+        </select>
+    </li>
+    {{/profiles}}
+
+</div>
+<!-- load the d3.js library -->
+<script src="/lib/d3.v4.min.js "></script>

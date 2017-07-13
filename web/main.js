@@ -38,7 +38,9 @@ app.use(expressSession({
     }
 }));
 
-app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.json({
+    limit: '50mb'
+}));
 app.use(bodyParser.urlencoded({
     extended: true
 }));
@@ -60,7 +62,7 @@ app.get('/channelprog/:profile', function (req, res) {
     });
 
     connection.connect();
-    connection.query('select * from channelprog order by channel,time', function (err, rows, fields) {
+    connection.query('select * from channelprog where profile=' + connection.escape(profile) + ' order by channel,time', function (err, rows, fields) {
         if (err) {
             console.log(err);
             return
@@ -194,6 +196,88 @@ app.get('/channels/:profile', function (req, res) {
 
 app.get('/status', function (req, res) {
     var status = {};
+});
+
+app.get('/profiles', function (req, res) {
+    var connection = mysql.createConnection({
+        host: config.db_host,
+        user: config.db_user,
+        password: config.db_pass,
+        database: config.db_db,
+    });
+
+    connection.connect();
+
+    connection.query('select * from profiles', function (err, rows, fields) {
+        if (err) {
+            console.log(err);
+            return
+        }
+
+        var profiles = [];
+        rows.forEach(function (element) {
+            profiles[element.id] = {
+                id: element.id,
+                name: element.name
+            }
+        }, this);
+        console.log(profiles);
+        connection.query('select * from current_status', function (err, rows, fields) {
+            if (err) {
+                console.log(err);
+                return
+            }
+
+            var profile = rows[0].profile;
+            res.render('list-profiles', {
+                profiles: profiles,
+                current_profile: profile
+            });
+            connection.end();
+        });
+    });
+});
+
+app.get('/newchannnel/:profile', function (req, res) {
+    var profile = req.params.profile;
+    var connection = mysql.createConnection({
+        host: config.db_host,
+        user: config.db_user,
+        password: config.db_pass,
+        database: config.db_db,
+    });
+    connection.connect();
+    connection.query('insert into profiles (name) values ("NEW")', function (err, rows, fields) {
+        if (err) {
+            console.log(err);
+            return
+        }
+        connection.query('select max(id) as id from profiles', function (err, rows, fields) {
+            if (err) {
+                console.log(err);
+                return
+            }
+            var newid = rows[0].id;
+            console.log("New Profile: " + newid);
+            connection.query('insert into channels (profile,id,name,class,brightness) select ' + newid + ' as profile, id, name, class, brightness from channels where profile = ' + profile, function (err, rows, fields) {
+                if (err) {
+                    console.log(err);
+                    return
+                }
+                connection.query('insert into channelprog select ' + newid + ',channel,time,power from channelprog where profile=' + profile, function (err, rows, fields) {
+                    if (err) {
+                        console.log(err);
+                        return
+                    }
+
+                    connection.end();
+                    res.send({
+                        "status": "OK"
+                    });
+                });
+            });
+        });
+    });
 });
 
 app.listen(3000, function () {
